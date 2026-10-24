@@ -32,3 +32,8 @@ de proteccion directamente alli y gestiona sus posiciones independientemente.
 
 Esta version fue probada en Linux. El lanzador PowerShell debe comprobarse
 en tu Windows. Si hay un error, comparte su mensaje sin mostrar el token.
+
+CONSULTAS: con el programa abierto escribe /analizar SOL en el grupo.
+Tambien /analizar@UsuarioDeTuBot SOL y /ayuda. Responde con LONG, SHORT
+o ESPERAR segun reglas de 4 horas; no abre posiciones. Las consultas
+no amplian el monitoreo automatico BTC/ETH. Ejecutar solo una instancia.

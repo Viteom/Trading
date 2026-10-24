@@ -8,6 +8,7 @@ from pathlib import Path
 from bot import Agent, analyze
 from feed import fetch
 from notifications import configured, send
+from commands import command_worker
 
 snapshot = {'status':'starting','signals':[], 'mode':'PAPER', 'provider':'OKX', 'timeframe':'4H', 'telegram':'disabled', 'error':None}
 lock = threading.Lock()
@@ -71,4 +72,6 @@ if __name__ == '__main__':
     # Let the service manager restart the process if its worker dies.
     threading.excepthook = lambda args: os._exit(1)
     threading.Thread(target=worker,daemon=True).start()
+    if configured():
+        threading.Thread(target=command_worker,daemon=True).start()
     ThreadingHTTPServer(('127.0.0.1',8000),Handler).serve_forever()

@@ -26,3 +26,10 @@ Ver [deploy/README.md](deploy/README.md) para servicio systemd con arranque auto
 
 ## Uso manual en Windows
 Ver windows/LEEME.txt y ejecutar windows/iniciar.ps1 en PowerShell. Las alertas solo funcionan con el programa abierto y el computador conectado y sin suspensión. La instancia de Codex se detuvo para evitar envíos fuera de estas sesiones. El lanzador solicita el token de forma oculta y no lo guarda. No se ha validado el lanzador en Windows.
+
+## Consultas por Telegram
+Con el programa abierto, en el grupo configurado: `/analizar BTC`, `/analizar ETH`, `/analizar SOL` o `/analizar SOLUSDT`. También se puede mencionar al bot: `/analizar@UsuarioDelBot SOL`. `/ayuda` muestra instrucciones.
+
+Usa velas cerradas de 4 horas y las mismas reglas EMA20/50 + RSI. Devuelve LONG, SHORT o ESPERAR y los indicadores. Solo propone stop y objetivo cuando hay señal. No es un modelo de lenguaje ni interpreta texto libre, noticias, imágenes, posiciones actuales o el contexto de una operación. La consulta no abre una operación simulada, no cambia el saldo y no amplía el seguimiento automático de BTC/ETH. Requiere un perpetuo USDT listado en OKX con historial suficiente; un mercado no disponible produce un aviso, sin inventar datos.
+
+Solo responde al grupo TELEGRAM_CHAT_ID configurado. Acepta órdenes de cualquier miembro de ese grupo; mantenerlo privado. Descarta mensajes de más de dos minutos para no ejecutar consultas antiguas tras un apagado. Guarda el cursor de Telegram en `.local/telegram-updates.db` antes de responder: si el proceso falla o el envío se pierde, puede ser necesario repetir el comando. Ejecutar una sola instancia por bot; otro consumidor de getUpdates o un webhook puede impedir recibir comandos. El programa hace polling; no requiere puertos públicos. El envío de prueba previo validó Telegram, pero las consultas nuevas requieren una prueba completa en el Windows del usuario.

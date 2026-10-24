@@ -1,6 +1,7 @@
 """OKX public perpetual futures feed. Does not access private account APIs."""
 import json
 import math
+import re
 import time
 import urllib.request
 
@@ -32,7 +33,9 @@ def normalize(rows, now_ms):
     return closed+[closed[-1]]
 
 def fetch(symbol):
-    inst={'BTCUSDT':'BTC-USDT-SWAP','ETHUSDT':'ETH-USDT-SWAP'}[symbol]
+    if not re.fullmatch(r'[A-Z0-9]{1,20}USDT', symbol):
+        raise ValueError('Símbolo inválido')
+    inst=symbol[:-4]+'-USDT-SWAP'
     rows=request(f'/api/v5/market/candles?instId={inst}&bar=4H&limit=150')
     marks=request(f'/api/v5/public/mark-price?instType=SWAP&instId={inst}')
     mark=marks[0]

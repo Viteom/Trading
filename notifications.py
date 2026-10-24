@@ -17,15 +17,25 @@ def message(trade):
             "Cruce EMA20/50 + RSI. No garantiza ganancias. Precio Binance puede diferir.")
 
 
-def send(trade):
+def api(method, parameters, timeout=15):
+    if not os.environ.get('TELEGRAM_BOT_TOKEN'):
+        return None
+    try:
+        payload=urllib.parse.urlencode(parameters).encode()
+        request=urllib.request.Request('https://api.telegram.org/bot'+os.environ['TELEGRAM_BOT_TOKEN']+'/'+method,data=payload)
+        with urllib.request.urlopen(request,timeout=timeout) as response:
+            result=json.load(response)
+        return result if result.get('ok') else None
+    except Exception:
+        # Telegram URLs contain credentials: never propagate or log exceptions.
+        return None
+
+
+def send_text(text):
     if not configured():
         return 'disabled'
-    payload=urllib.parse.urlencode({'chat_id':os.environ['TELEGRAM_CHAT_ID'], 'text':message(trade), 'protect_content':'true'}).encode()
-    # Never propagate an exception containing the token-bearing request URL.
-    try:
-        request=urllib.request.Request('https://api.telegram.org/bot'+os.environ['TELEGRAM_BOT_TOKEN']+'/sendMessage',data=payload)
-        with urllib.request.urlopen(request,timeout=10) as response:
-            result=json.load(response)
-        return 'sent' if result.get('ok') else 'failed'
-    except Exception:
-        return 'failed'
+    return 'sent' if api('sendMessage',{'chat_id':os.environ['TELEGRAM_CHAT_ID'], 'text':text, 'protect_content':'true'}) else 'failed'
+
+
+def send(trade):
+    return send_text(message(trade))
