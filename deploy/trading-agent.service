@@ -1,0 +1,29 @@
+[Unit]
+Description=Trading Agent - OKX 4H paper signals
+Wants=network-online.target
+After=network-online.target
+StartLimitIntervalSec=0
+
+[Service]
+Type=notify
+NotifyAccess=all
+User=trading-agent
+Group=trading-agent
+WorkingDirectory=/opt/trading-agent
+EnvironmentFile=/etc/trading-agent.env
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/usr/bin/python3 /opt/trading-agent/server.py
+Restart=always
+RestartSec=15
+WatchdogSec=180
+TimeoutStartSec=180
+TimeoutStopSec=20
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/trading-agent/.local
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target

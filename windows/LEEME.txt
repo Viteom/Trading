@@ -1,0 +1,34 @@
+TRADING AGENT EN TU PC WINDOWS
+
+1. Instala Python 3.12 o superior desde https://www.python.org/downloads/windows/
+   Activa Add Python to PATH durante la instalacion.
+2. Extrae TODO el ZIP en una carpeta propia. No ejecutar dentro del ZIP.
+3. Abre PowerShell en la carpeta extraida.
+4. Ejecuta:
+   powershell -NoProfile -ExecutionPolicy Bypass -File .\windows\iniciar.ps1
+   El ajuste se limita a ese proceso; no cambia la politica permanente.
+5. Introduce el identificador de tu grupo cuando lo solicite.
+   Luego introduce el token ORIGINAL de BotFather cuando lo solicite. Se oculta y no
+   se guarda en archivos. El secreto de Codex no se transfiere al computador.
+6. Deja la ventana abierta mientras estes sentado operando. Para finalizar,
+   pulsa Ctrl+C. Cerrar el programa detiene las alertas y la simulacion.
+
+El PC debe tener Internet y no estar suspendido. Estar encendido no basta si
+el programa esta cerrado. No hay deteccion de presencia: tu decides cuando
+iniciar y detener. Telegram puede entregar mensajes pendientes despues.
+El panel es local en el puerto 8000; no esta expuesto a Internet.
+
+El programa consulta velas cerradas de 4 HORAS de BTC y ETH en OKX. No genera
+una entrada cada 4 horas obligatoriamente. El objetivo es 5% BRUTO sobre el
+margen por operacion con 5x; comisiones reducen el neto. 100 USDT SIMULADOS.
+No envia ordenes reales ni garantiza rendimientos. Precios Binance difieren.
+
+El historial local se guarda en .local/paper-okx-4h.db. Este paquete inicia
+una simulacion nueva, sin incluir bases de datos ni credenciales de Codex.
+Los stops y objetivos no se vigilan con el programa apagado. Las posiciones
+simuladas abiertas se recuperan al iniciar; no se reconstruye lo ocurrido
+durante la desconexion. Si operas manualmente en Binance, coloca las ordenes
+de proteccion directamente alli y gestiona sus posiciones independientemente.
+
+Esta version fue probada en Linux. El lanzador PowerShell debe comprobarse
+en tu Windows. Si hay un error, comparte su mensaje sin mostrar el token.
