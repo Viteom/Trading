@@ -4,6 +4,17 @@ from unittest.mock import patch
 from commands import answer, process_update
 
 class CommandTests(unittest.TestCase):
+    def test_plain_symbols_and_names(self):
+        signal=dict(side='WAIT',rsi=50,ema20=100,ema50=100,reason='Sin cruce',atr=1)
+        for text in ('SOL','sol','SOLUSDT','Solana'):
+            with self.subTest(text=text), patch('commands.fetch',return_value=([],100)) as fetch, patch('commands.analyze',return_value=signal):
+                self.assertIn('ESPERAR',answer(text))
+                fetch.assert_called_once_with('SOLUSDT')
+    def test_ignores_conversation_and_other_commands(self):
+        with patch('commands.fetch') as fetch:
+            self.assertIsNone(answer('hola como estas'))
+            self.assertIsNone(answer('/otraorden'))
+            fetch.assert_not_called()
     def test_invalid_symbol_never_fetches(self):
         with patch('commands.fetch') as fetch:
             self.assertIn('inválido',answer('/analizar ../../test'))

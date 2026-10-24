@@ -15,15 +15,19 @@ def answer(text):
         return None
     command=parts[0].split('@')[0].lower()
     if command in ('/ayuda','/start'):
-        return ('Consultas: /analizar BTC, /analizar ETH o /analizar SOL.\n'
+        return ('Escribe BTC, ETH, SOL o /analizar SOL.\n'
                 'Solo análisis técnico por reglas con velas cerradas de 4 horas de OKX. '
                 'No abre operaciones ni modifica la simulación. Puede responder ESPERAR. '
                 'Funciona mientras el programa esté abierto.')
-    if command!='/analizar':
+    if command=='/analizar':
+        if len(parts)!=2:
+            return 'Escribe SOL o usa /analizar SOL.'
+        symbol=parts[1].upper()
+    elif len(parts)==1 and re.fullmatch(r'[A-Za-z0-9]{1,24}',parts[0]):
+        symbol=parts[0].upper()
+    else:
         return None
-    if len(parts)!=2:
-        return 'Uso: /analizar SOL (también acepta SOLUSDT).'
-    symbol=parts[1].upper()
+    symbol={'BITCOIN':'BTC','ETHEREUM':'ETH','SOLANA':'SOL'}.get(symbol,symbol)
     if not symbol.endswith('USDT'):
         symbol+='USDT'
     if not re.fullmatch(r'[A-Z0-9]{1,20}USDT',symbol):
