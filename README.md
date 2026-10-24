@@ -1,38 +1,54 @@
-# Trading Agent — prototipo de futuros en simulación
+# Trading Agent — futuros en simulación
 
-Python 3.12+, sin dependencias externas. Ejecutar desde `/workspace/Trading`:
+Python 3.12+, sin dependencias externas. Ejecutar desde la carpeta del proyecto:
 
 ```sh
 python -m unittest discover -s tests -v
 python server.py
 ```
 
-El servidor escucha en 127.0.0.1:8000. `GET /api/state` expone estado, señales y operaciones; `/` sirve el panel. Requiere HTTPS a `www.okx.com`. No requiere claves ni tiene capacidad de enviar órdenes. Si la red falla, muestra estado `degraded`; nunca sustituye cotizaciones por datos ficticios.
+El servidor escucha solo en 127.0.0.1:8000. `/api/state` muestra datos, señales, estado Telegram y operaciones. `/` sirve el panel. Requiere HTTPS a www.okx.com y, para Telegram, api.telegram.org. No tiene capacidad para enviar órdenes reales.
 
-Cada 30 segundos consulta BTCUSDT y ETHUSDT, con velas de 4 horas. Descarta la vela abierta. Señales por cruce EMA20/50 con filtro RSI simple de 14 periodos. Una señal por vela; una posición global; capital inicial 100 USDT. Tamaño con riesgo teórico 0,5%, margen máximo 25% y apalancamiento fijo 5x. Stop a 2 ATR (mínimo 0,3%); objetivo bruto de 5% sobre el margen de cada operación: movimiento favorable de precio de 1% a 5x. Las comisiones reducen el rendimiento neto; no es un objetivo diario. El stop depende del ATR, por lo que la relación beneficio/riesgo varía. Las posiciones ya abiertas conservan su objetivo original. Pausa entradas tras pérdida realizada diaria del 2%, con día UTC. Base SQLite en `.local/paper-okx-4h.db` (bases anteriores conservadas).
+## Estrategia v2 — velas cerradas de 4 horas
 
-Simulación experimental: entradas y salidas al precio observado, comisión y deslizamiento combinados estimados de 0,06% por lado. El panel muestra patrimonio realizado, no valoración de posiciones abiertas. No modela funding, liquidaciones, filtros de cantidad de Binance ni movimientos entre consultas; gaps pueden superar el riesgo previsto. Los stops solo se evalúan mientras el agente funciona y obtiene datos. No hay backtest ni evidencia de rentabilidad. El usuario busca 5–10% por operación; el prototipo usa el extremo de 5% bruto sobre margen como hipótesis sin validar, sin prometer resultados.
+Fuente: perpetuos USDT de OKX. Seguimiento automático de BTC/ETH; consultas por símbolo para otros perpetuos con suficiente historial. Se solicitan hasta 300 velas para inicializar indicadores (mínimo 100 cerradas). El resultado puede variar respecto a TradingView por historial, fuente y fórmulas.
 
-Las alertas aparecen en el panel y se envían a Telegram cuando está configurado. No integra TradingView ni ejecución real. Antes de operar dinero real hacen falta validación histórica fuera de muestra, pruebas en testnet, reglas de ejecución/reconciliación y límites acordados con el usuario. No introducir claves en chat ni en el repositorio.
+- EMAs 10, 55 y 100, inicializadas con el primer cierre disponible.
+- RSI14 con suavizado de Wilder. LONG exige 50 < RSI < 70; SHORT, 30 < RSI < 50.
+- ADX14 con suavizado de Wilder, umbral >=20. LONG exige +DI > -DI; SHORT, -DI > +DI.
+- Squeeze inspirado en LazyBear: Bollinger 20, desviación poblacional ×2; Keltner 20, SMA del true range ×1,5. Compresión ON si BB está dentro de KC; OFF si está fuera. Momentum: regresión lineal de 20 periodos del cierre menos el promedio entre el punto medio de máximos/mínimos de 20 periodos y la SMA20. Se usa el extremo final de la recta.
+- LONG: cierre > EMA10 > EMA55 > EMA100, RSI y ADX/DI válidos, squeeze OFF, momentum positivo y creciente.
+- SHORT: cierre < EMA10 < EMA55 < EMA100, RSI y ADX/DI válidos, squeeze OFF, momentum negativo y decreciente.
+- Solo hay señal al pasar de NO cumplir a cumplir TODA la configuración entre las dos últimas velas cerradas. Si ya se cumplía antes, responde ESPERAR para no repetir la entrada. No exige que el squeeze se haya liberado justo en esa vela.
 
-## Fuente de mercado
-El agente usa los perpetuos BTC-USDT-SWAP y ETH-USDT-SWAP de OKX, sin cuenta ni claves. Verifica precios recientes, velas confirmadas y continuidad del historial. Los precios y señales pueden diferir de Binance. La conectividad OKX fue validada en Codex; verificarla de nuevo en cada servidor.
+Referencia conceptual: https://www.tradingview.com/script/nqQ1DT5a-Squeeze-Momentum-Indicator-LazyBear/ . El acceso a esa página fue bloqueado por el proxy; no se inspeccionó el código exacto. Esta implementación NO está verificada como equivalente al script de LazyBear. Algunas variantes históricas emplean distintos multiplicadores o parámetros. No se ha validado rentabilidad ni comparado valores uno a uno con TradingView.
 
-## Telegram privado (opcional)
-Crear un grupo privado y un bot con @BotFather, añadir únicamente el bot al grupo y desactivar permisos para que miembros inviten personas. No existe un usuario humano del agente que se pueda invitar. Los grupos normales de Telegram no tienen cifrado de extremo a extremo. Configurar TELEGRAM_BOT_TOKEN y TELEGRAM_CHAT_ID en el proceso mediante un gestor seguro; nunca guardar el token en Git o compartirlo por chat. El envío está desactivado si falta cualquiera. Necesita HTTPS a api.telegram.org. Las alertas corresponden a entradas simuladas aceptadas, no a toda señal candidata; sin configuración, solo aparecen en el panel. Se confirmó una entrega de prueba al grupo configurado desde Codex; cada despliegue requiere validación propia.
+No analiza noticias, datos fundamentales, volumen, interés abierto, financiación, soportes/resistencias ni posiciones del usuario. No es un modelo de lenguaje. Requiere evaluación histórica fuera de muestra antes de considerar dinero real.
 
-## Operación 24/7
-Ver [deploy/README.md](deploy/README.md) para servicio systemd con arranque automático, reinicio y watchdog. El despliegue permanente todavía no se ha realizado: Codex no es un servidor 24/7.
+## Frecuencia y gestión de riesgo
 
-## Uso manual en Windows
-Ver windows/LEEME.txt y ejecutar windows/iniciar.ps1 en PowerShell. Las alertas solo funcionan con el programa abierto y el computador conectado y sin suspensión. La instancia de Codex se detuvo para evitar envíos fuera de estas sesiones. El lanzador solicita el token de forma oculta y no lo guarda. No se ha validado el lanzador en Windows.
+El ciclo consulta precio de marca cada 30 segundos para vigilar stops/objetivos simulados. Conserva velas en memoria hasta el siguiente cierre de 4 horas y recalcula el análisis automático solo cuando cambia la vela cerrada. Las consultas manuales recalculan los indicadores sobre el mismo historial confirmado. Tras un reinicio, recarga datos. Un cierre retrasado se vuelve a consultar, sin inventar cotizaciones.
 
-## Consultas por Telegram
-Con el programa abierto, en el grupo configurado: `/analizar BTC`, `/analizar ETH`, `/analizar SOL` o `/analizar SOLUSDT`. También se puede mencionar al bot: `/analizar@UsuarioDelBot SOL`. `/ayuda` muestra instrucciones.
+Capital inicial simulado 100 USDT, apalancamiento fijo 5x, riesgo teórico 0,5% del capital por operación incluyendo costes estimados, margen máximo 25%. Stop a 2 ATR14 Wilder (mínimo 0,3% del precio). Objetivo bruto 5% sobre margen: movimiento favorable del precio de 1% a 5x. El 10% no está implementado. El objetivo/stop varía con la volatilidad y puede ser inferior a 1; se muestra en consultas. Una posición global y pausa de entradas tras perder 2% diario realizado (día UTC).
 
-Usa velas cerradas de 4 horas y las mismas reglas EMA20/50 + RSI. Devuelve LONG, SHORT o ESPERAR y los indicadores. Solo propone stop y objetivo cuando hay señal. No es un modelo de lenguaje ni interpreta texto libre, noticias, imágenes, posiciones actuales o el contexto de una operación. La consulta no abre una operación simulada, no cambia el saldo y no amplía el seguimiento automático de BTC/ETH. Requiere un perpetuo USDT listado en OKX con historial suficiente; un mercado no disponible produce un aviso, sin inventar datos.
+Base `.local/paper-okx-4h.db`. La actualización conserva saldo, posiciones, niveles y señales ya registrados; no migra ni borra históricos. Las bases anteriores siguen intactas. Una posición anterior mantiene su stop y objetivo.
 
-Solo responde al grupo TELEGRAM_CHAT_ID configurado. Acepta órdenes de cualquier miembro de ese grupo; mantenerlo privado. Descarta mensajes de más de dos minutos para no ejecutar consultas antiguas tras un apagado. Guarda el cursor de Telegram en `.local/telegram-updates.db` antes de responder: si el proceso falla o el envío se pierde, puede ser necesario repetir el comando. Ejecutar una sola instancia por bot; otro consumidor de getUpdates o un webhook puede impedir recibir comandos. El programa hace polling; no requiere puertos públicos. El envío de prueba previo validó Telegram, pero las consultas nuevas requieren una prueba completa en el Windows del usuario.
+Comisión y deslizamiento combinados estimados de 0,06% por lado. No modela funding, liquidaciones, filtros de cantidad ni movimientos entre consultas. Gaps pueden superar el riesgo previsto. El patrimonio mostrado es realizado. Cuando el programa está apagado no vigila posiciones ni reconstruye movimientos perdidos: las órdenes de protección de operaciones reales deben colocarse en Binance directamente.
 
-### Consultas con solo el símbolo
-También acepta `SOL`, `BTC`, `ETH`, `SOLUSDT` y los nombres Bitcoin, Ethereum y Solana (sin importar mayúsculas). Para que Telegram entregue mensajes sin `/comando`, configurar en @BotFather `/setprivacy` → seleccionar el bot → `Disable`. Quitar y volver a añadir el bot al grupo para aplicar la política; no hace falta darle permisos de administrador. Esto permite al bot recibir mensajes normales de los grupos donde participa, por lo que conviene mantenerlo únicamente en el grupo privado. El programa sigue respondiendo solo al chat configurado. El permiso de Telegram se verifica por separado del parser y no puede activarse solo cambiando código.
+## Consultas privadas por Telegram
+
+Configurar TELEGRAM_BOT_TOKEN y TELEGRAM_CHAT_ID de forma segura; no compartir tokens ni guardarlos en Git. El programa solo responde al grupo configurado, a cualquiera de sus miembros. Una única instancia por bot. No configurar un webhook simultáneo al polling.
+
+Comandos: `SOL`, `BTC`, `ETH`, `SOLUSDT`, Bitcoin, Ethereum, Solana; también `/analizar SOL` y `/analizar@UsuarioDelBot SOL`; `/ayuda` muestra instrucciones. Para recibir símbolos sin comando: @BotFather → `/setprivacy` → seleccionar el bot → Disable; quitar y volver a añadir el bot al grupo. Mantenerlo solo en el grupo privado: desactivar privacidad permite que reciba mensajes normales en grupos.
+
+Las consultas NO abren posiciones ni añaden mercados a la vigilancia automática. LONG/SHORT/ESPERAR son resultados de reglas, no garantías. Se rechazan consultas de más de dos minutos. El cursor se guarda antes de responder en `.local/telegram-updates.db`; si falla el envío, repetir el comando. Un envío automático con timeout puede duplicarse al reintentar.
+
+En Codex se validaron datos reales de OKX y una entrega previa de prueba a Telegram. La estrategia v2 requiere actualización y comprobación en el PC; su recepción por Telegram no se ha probado allí todavía.
+
+## Uso en Windows
+
+Ver windows/LEEME.txt y ejecutar windows/iniciar.ps1. Introducir el grupo y el token oculto al iniciar. El lanzador no guarda el token. Funciona mientras el programa esté abierto y el computador tenga Internet y no esté suspendido. No detecta presencia. La instancia de Codex está detenida deliberadamente; no iniciarla para envíos paralelos.
+
+## Operación permanente opcional
+
+Ver deploy/README.md para systemd con reinicio y watchdog. No se ha instalado en un VPS. La opción actual elegida por el usuario es ejecución manual en su PC.

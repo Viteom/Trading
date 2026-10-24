@@ -1,4 +1,4 @@
-"""Public Binance market analysis and isolated paper execution. No order API."""
+"""Public futures market analysis and isolated paper execution. No order API."""
 import json
 import math
 import sqlite3
@@ -21,24 +21,13 @@ def ema(values, period):
     return result
 
 def analyze(rows):
-    # Binance's last candle is still forming; never trade on it.
-    closed = rows[:-1]
-    if len(closed) < 60:
-        raise ValueError('Se necesitan al menos 60 velas cerradas')
-    prices = [float(row[4]) for row in closed]
-    changes = [b-a for a,b in zip(prices[-15:-1], prices[-14:])]
-    gain = sum(max(x, 0) for x in changes) / 14
-    loss = sum(max(-x, 0) for x in changes) / 14
-    rsi = 100 - 100/(1+gain/loss) if loss else (100 if gain else 50)
-    atr = sum(max(float(closed[i][2])-float(closed[i][3]), abs(float(closed[i][2])-prices[i-1]), abs(float(closed[i][3])-prices[i-1])) for i in range(len(closed)-14,len(closed))) / 14
-    fast, slow = ema(prices, 20), ema(prices, 50)
-    prior_fast, prior_slow = ema(prices[:-1], 20), ema(prices[:-1], 50)
-    side = 'WAIT'
-    if prior_fast <= prior_slow and fast > slow and 50 < rsi < 70:
-        side = 'LONG'
-    elif prior_fast >= prior_slow and fast < slow and 30 < rsi < 50:
-        side = 'SHORT'
-    return dict(side=side, price=prices[-1], atr=atr, rsi=round(rsi,2), ema20=fast, ema50=slow, candle=int(closed[-1][0]), reason='Cruce EMA20/EMA50 confirmado con filtro RSI' if side != 'WAIT' else 'Sin cruce confirmado con RSI válido')
+    from indicators import snapshots, decide
+    previous,current=snapshots(rows[:-1])
+    side=decide(previous,current)
+    return dict(**current,side=side,candle=int(rows[-2][0]),
+                strategy='ema-squeeze-4h-v2',
+                reason=('Nueva confluencia EMA10/55/100 + RSI14 + ADX14 + Squeeze inspirado en LazyBear'
+                        if side!='WAIT' else 'Sin nueva confluencia completa; esperar cierre y confirmación'))
 
 def position_size(equity, price, atr, leverage=5):
     if not all(math.isfinite(x) and x > 0 for x in (equity,price,atr)) or leverage not in (5,10):

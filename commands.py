@@ -40,8 +40,9 @@ def answer(text):
                 'historial insuficiente o error de datos/conexión. No hay recomendación de entrada.')
     verdict={'WAIT':'ESPERAR','LONG':'LONG','SHORT':'SHORT'}[signal['side']]
     result=(f'CONSULTA · {symbol} · OKX · 4H\nResultado por reglas: {verdict}\n'
-            f'Precio de marca: {mark:.6g}\nRSI: {signal["rsi"]} · '
-            f'EMA20: {signal["ema20"]:.6g} · EMA50: {signal["ema50"]:.6g}\n'
+            f'Precio de marca: {mark:.6g}\nRSI: {signal["rsi"]:.2f} · '
+            f'EMA10: {signal["ema10"]:.6g} · EMA55: {signal["ema55"]:.6g} · EMA100: {signal["ema100"]:.6g}\n'
+            f'ADX: {signal["adx"]:.2f} · Squeeze: {signal["squeeze"]} · Momentum: {signal["momentum"]:.6g}\n'
             f'{signal["reason"]}\n')
     if signal['side']!='WAIT':
         _,distance=position_size(100,mark,signal['atr'])

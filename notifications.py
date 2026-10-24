@@ -14,7 +14,7 @@ def message(trade):
             f"Referencia: {trade['entry']:.4f}\nStop: {trade['stop']:.4f}\nObjetivo: {trade['target']:.4f}\n"
             "5x · Objetivo bruto 5% sobre margen por operación; neto menor por costes.\n"
             "Capital inicial simulado: 100 USDT. Riesgo teórico 0,5% del capital.\n"
-            "Cruce EMA20/50 + RSI. No garantiza ganancias. Precio Binance puede diferir.")
+            "EMA10/55/100 + RSI14 + ADX14 + Squeeze inspirado en LazyBear. No garantiza ganancias. Precio Binance puede diferir.")
 
 
 def api(method, parameters, timeout=15):

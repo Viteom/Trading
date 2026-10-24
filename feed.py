@@ -2,12 +2,15 @@
 import json
 import math
 import re
+import threading
 import time
 import urllib.request
 
 INTERVAL_MS = 4 * 60 * 60 * 1000
 
 BASE = 'https://www.okx.com'
+_candle_cache = {}
+_cache_lock = threading.Lock()
 
 def request(path):
     req = urllib.request.Request(BASE+path, headers={'User-Agent':'TradingResearch/1.0'})
@@ -36,7 +39,14 @@ def fetch(symbol):
     if not re.fullmatch(r'[A-Z0-9]{1,20}USDT', symbol):
         raise ValueError('Símbolo inválido')
     inst=symbol[:-4]+'-USDT-SWAP'
-    rows=request(f'/api/v5/market/candles?instId={inst}&bar=4H&limit=150')
+    expected_closed=(int(time.time()*1000)//INTERVAL_MS-1)*INTERVAL_MS
+    with _cache_lock:
+        rows=_candle_cache.get(inst)
+        newest_closed=max((int(r[0]) for r in rows if r[8]=='1'),default=-1) if rows else -1
+        if newest_closed<expected_closed:
+            rows=request(f'/api/v5/market/candles?instId={inst}&bar=4H&limit=300')
+            normalize(rows,time.time()*1000)
+            _candle_cache[inst]=rows
     marks=request(f'/api/v5/public/mark-price?instType=SWAP&instId={inst}')
     mark=marks[0]
     now=time.time()*1000

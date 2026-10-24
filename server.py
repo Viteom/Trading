@@ -28,12 +28,17 @@ def worker():
     agent.db.execute('CREATE TABLE IF NOT EXISTS notified(trade_id INTEGER PRIMARY KEY)')
     agent.db.commit()
     notification_status = 'configured' if configured() else 'disabled'
+    analysis_cache={}
     while True:
         signals, errors = [], []
         for symbol in ('BTCUSDT','ETHUSDT'):
             try:
                 rows, mark = fetch(symbol)
-                signal = analyze(rows)
+                candle=int(rows[-2][0])
+                cached=analysis_cache.get(symbol)
+                if cached is None or cached['candle']!=candle:
+                    analysis_cache[symbol]=analyze(rows)
+                signal=analysis_cache[symbol]
                 agent.step(symbol,signal,mark)
                 signals.append(dict(symbol=symbol,mark=mark,**signal))
             except Exception as exc:

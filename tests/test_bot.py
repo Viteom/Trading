@@ -10,7 +10,7 @@ class BotTests(unittest.TestCase):
         self.assertLessEqual(q*(d+1000*.0012),.5)
         self.assertLessEqual(q*1000/5,25)
     def test_ignores_forming_candle(self):
-        rows=[[i,100,101,99,100,0] for i in range(70)]
+        rows=[[i,100,101,99,100,0] for i in range(160)]
         a=analyze(rows)
         rows[-1][4]=1000000
         self.assertEqual(a,analyze(rows))
